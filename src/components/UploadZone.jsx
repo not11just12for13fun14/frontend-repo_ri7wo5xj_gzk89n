@@ -1,132 +1,124 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Image, Film, FileText, Mic, UploadCloud, X } from 'lucide-react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Upload, Image as ImageIcon, Film, FileText, Mic, X, MagicWand } from 'lucide-react';
 
-const typeIcon = (type) => {
-  if (!type) return <FileText className="h-5 w-5" />;
-  if (type.startsWith('image')) return <Image className="h-5 w-5 text-fuchsia-300" />;
-  if (type.startsWith('video')) return <Film className="h-5 w-5 text-cyan-300" />;
-  if (type.startsWith('audio')) return <Mic className="h-5 w-5 text-amber-300" />;
-  return <FileText className="h-5 w-5 text-emerald-300" />;
+const fileIcon = (type) => {
+  if (!type) return FileText;
+  if (type.startsWith('image/')) return ImageIcon;
+  if (type.startsWith('video/')) return Film;
+  if (type.startsWith('audio/')) return Mic;
+  return FileText;
 };
 
-export default function UploadZone({ onSubmit }) {
+export default function UploadZone({ onAnalyze }) {
   const [file, setFile] = useState(null);
   const [text, setText] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
 
-  const onFileSelected = (f) => {
+  const handleFiles = useCallback((files) => {
+    const f = files?.[0];
     if (!f) return;
-    setFile(f);
-    setText('');
-    if (f.type.startsWith('image') || f.type.startsWith('video') || f.type.startsWith('audio')) {
-      const url = URL.createObjectURL(f);
-      setPreviewUrl(url);
-    } else {
-      setPreviewUrl('');
-    }
-  };
+    setFile(Object.assign(f, { preview: URL.createObjectURL(f) }));
+  }, []);
 
-  const onDrop = (e) => {
+  const onDrop = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragOver(false);
-    const f = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) onFileSelected(f);
-  };
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  }, [handleFiles]);
 
-  const badge = useMemo(() => {
-    if (file) return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/90">
-        {typeIcon(file.type)}
-        {file.name}
-      </span>
-    );
-    if (text) return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/90">
-        {typeIcon('text/plain')}
-        Text input
-      </span>
-    );
-    return null;
-  }, [file, text]);
+  const openPicker = () => inputRef.current?.click();
 
-  const clear = () => {
+  const clearAll = () => {
+    if (file?.preview) URL.revokeObjectURL(file.preview);
     setFile(null);
     setText('');
-    setPreviewUrl('');
-    if (inputRef.current) inputRef.current.value = '';
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!file && !text.trim()) return;
-    onSubmit({ file, text });
-  };
+  const Icon = useMemo(() => fileIcon(file?.type), [file]);
 
   return (
-    <section id="uploader" className="relative mt-10 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-      <div className="absolute inset-0 -z-[0] pointer-events-none rounded-3xl bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10" />
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Smart Upload Zone</h2>
-        {badge}
-      </div>
-      <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div>
-          <div
-            onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-            onDrop={onDrop}
-            onClick={() => inputRef.current?.click()}
-            className={`group relative flex h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/20 bg-neutral-900/60 p-4 text-white transition ${dragOver ? 'border-cyan-400 bg-cyan-400/10' : 'hover:border-white/30'}`}
-          >
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*,video/*,audio/*,.txt,.pdf"
-              className="hidden"
-              onChange={(e) => onFileSelected(e.target.files?.[0])}
-            />
-            <UploadCloud className="h-8 w-8 text-white/80" />
-            <p className="mt-2 text-sm text-white/80">Drag & drop or click to upload images, videos, audio, text or PDFs</p>
-            <p className="text-xs text-white/60">Max 25MB</p>
+    <div
+      onDrop={onDrop}
+      onDragOver={(e) => e.preventDefault()}
+      className="rounded-2xl border border-white/15 bg-white/5 p-4 md:p-6 backdrop-blur shadow-xl"
+    >
+      <div className="flex items-start gap-4">
+        <button
+          onClick={openPicker}
+          className="shrink-0 rounded-xl bg-white/10 p-3 ring-1 ring-white/15 hover:bg-white/15"
+          aria-label="Upload"
+        >
+          <Upload className="h-5 w-5 text-white" />
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 text-white/80 text-sm">
+            <Icon className="h-5 w-5" />
+            <span>Drag & drop a file or paste text below</span>
           </div>
 
-          {previewUrl && (
-            <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/40">
-              {file?.type?.startsWith('image') && (
-                <img src={previewUrl} alt="preview" className="h-56 w-full object-cover" />
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              {file ? (
+                <div className="relative">
+                  {(file.type?.startsWith('image/')) && (
+                    <img src={file.preview} alt="preview" className="h-40 w-full rounded-lg object-cover" />
+                  )}
+                  {(file.type?.startsWith('video/')) && (
+                    <video src={file.preview} controls className="h-40 w-full rounded-lg object-cover" />
+                  )}
+                  {(file.type?.startsWith('audio/')) && (
+                    <audio src={file.preview} controls className="w-full" />
+                  )}
+                  {!file.type && (
+                    <div className="text-white/70 text-sm">Selected file: {file.name}</div>
+                  )}
+                  <button onClick={clearAll} className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white/80 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={openPicker} className="flex h-40 w-full items-center justify-center rounded-lg bg-white/5 text-white/60 hover:text-white">
+                  Click to choose a file
+                </button>
               )}
-              {file?.type?.startsWith('video') && (
-                <video src={previewUrl} controls className="h-56 w-full object-cover" />
-              )}
-              {file?.type?.startsWith('audio') && (
-                <audio src={previewUrl} controls className="w-full" />
-              )}
+              <input
+                ref={inputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,video/*,audio/*,application/pdf"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
             </div>
-          )}
-        </div>
 
-        <div className="flex flex-col gap-3">
-          <label className="text-sm text-white/80">Or paste text / a caption</label>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Paste your script, caption, or article..."
-            className="min-h-[180px] w-full rounded-xl border border-white/10 bg-neutral-900/60 p-3 text-sm text-white placeholder:text-white/40 focus:border-cyan-400 focus:outline-none"
-          />
-          <div className="flex items-center justify-between">
-            <button type="button" onClick={clear} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-              <X className="h-4 w-4" /> Clear
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste caption, script, or description..."
+                className="h-40 w-full resize-none rounded-lg bg-white/5 p-3 text-sm text-white placeholder-white/40 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => onAnalyze({ file, text })}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-cyan-500 px-4 py-2 text-white shadow-lg shadow-fuchsia-500/20 hover:brightness-110"
+            >
+              <MagicWand className="h-4 w-4" /> Analyze
             </button>
-            <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
-              <UploadCloud className="h-4 w-4" /> Analyze
-            </button>
+            {file || text ? (
+              <button onClick={clearAll} className="rounded-xl bg-white/10 px-4 py-2 text-white/80 ring-1 ring-white/15 hover:bg-white/15">
+                Clear
+              </button>
+            ) : null}
+            <div className="text-xs text-white/60">Supported: images, videos, audio, PDFs, or plain text.</div>
           </div>
         </div>
-      </form>
-    </section>
+      </div>
+    </div>
   );
 }

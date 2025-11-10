@@ -1,91 +1,91 @@
 import React from 'react';
-import { Gauge, Activity, TrendingUp, Clock } from 'lucide-react';
+import { Flame, TrendingUp, ThumbsUp, Gauge } from 'lucide-react';
 
 function Meter({ label, value, colorFrom, colorTo }) {
-  const pct = Math.max(0, Math.min(100, value));
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-white/80">{label}</span>
-        <span className="text-sm font-semibold text-white">{pct}%</span>
+        <span className="text-sm text-white/70">{label}</span>
+        <span className="text-sm font-semibold text-white">{value}%</span>
       </div>
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
         <div
           className="h-full rounded-full"
-          style={{ width: `${pct}%`, backgroundImage: `linear-gradient(90deg, ${colorFrom}, ${colorTo})` }}
+          style={{ width: `${value}%`, background: `linear-gradient(90deg, ${colorFrom}, ${colorTo})` }}
         />
       </div>
     </div>
   );
 }
 
-export default function Dashboard({ result, history }) {
-  const safe = result || { virality: 0, sentiment: 0, readability: 0, impact: 0 };
-  const items = history || [];
+export default function Dashboard({ result }) {
+  if (!result) {
+    return (
+      <div className="rounded-2xl border border-white/15 bg-white/5 p-6 text-center text-white/70">
+        Upload something and run Analyze to see predictions.
+      </div>
+    );
+  }
+
+  const { virality, sentiment, readability, impact, tips, hashtags, solution } = result;
 
   return (
-    <section className="mt-10 grid gap-6 lg:grid-cols-3" aria-label="Interactive Dashboard">
-      <div className="lg:col-span-2 space-y-4">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-2 text-white">
-            <Gauge className="h-5 w-5 text-cyan-300" />
-            <h3 className="font-semibold">Virality & Sentiment</h3>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Meter label="Virality Score" value={safe.virality} colorFrom="#8b5cf6" colorTo="#06b6d4" />
-            <Meter label="Sentiment" value={safe.sentiment} colorFrom="#f59e0b" colorTo="#22c55e" />
-            <Meter label="Readability" value={safe.readability} colorFrom="#06b6d4" colorTo="#a78bfa" />
-            <Meter label="Listener Impact" value={safe.impact} colorFrom="#ef4444" colorTo="#f59e0b" />
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-2 text-white">
-            <Activity className="h-5 w-5 text-fuchsia-300" />
-            <h3 className="font-semibold">Sentiment Heatmap</h3>
-          </div>
-          <div className="grid grid-cols-12 gap-2">
-            {new Array(48).fill(0).map((_, i) => {
-              const v = items[i]?.sentiment ?? Math.floor(Math.random() * 100);
-              const hue = 200 + Math.floor((v / 100) * 140); // cool to warm
-              return (
-                <div key={i} className="aspect-square w-full rounded-md" style={{ backgroundColor: `hsl(${hue} 85% 55% / 0.7)` }} />
-              );
-            })}
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Meter label="Virality" value={virality} colorFrom="#f0abfc" colorTo="#22d3ee" />
+        <Meter label="Sentiment" value={sentiment} colorFrom="#34d399" colorTo="#22c55e" />
+        <Meter label="Readability" value={readability} colorFrom="#a78bfa" colorTo="#60a5fa" />
+        <Meter label="Impact" value={impact} colorFrom="#fb7185" colorTo="#f472b6" />
       </div>
 
-      <div className="space-y-4">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-2 text-white">
-            <TrendingUp className="h-5 w-5 text-emerald-300" />
-            <h3 className="font-semibold">Trend Sync</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="flex items-center gap-2 text-white/80">
+            <Flame className="h-5 w-5 text-fuchsia-300" />
+            <h3 className="font-semibold">Actionable Solution</h3>
           </div>
-          <p className="text-sm text-white/80">Live trend alignment: {safe.trendAlign ?? Math.floor(40 + Math.random() * 60)}%</p>
-          <div className="mt-3 h-28 w-full rounded-xl bg-gradient-to-br from-fuchsia-500/20 via-cyan-400/20 to-emerald-400/20" />
-        </div>
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <div className="mb-3 flex items-center gap-2 text-white">
-            <Clock className="h-5 w-5 text-amber-300" />
-            <h3 className="font-semibold">History</h3>
-          </div>
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {items.length === 0 && (
-              <p className="text-sm text-white/60">No history yet. Upload content to see your creative trail.</p>
-            )}
-            {items.map((h, idx) => (
-              <div key={idx} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-3">
-                <div className="flex items-center gap-2 text-white/90">
-                  <span className="text-xs text-white/60">{new Date(h.time).toLocaleTimeString()}</span>
-                </div>
-                <div className="text-xs text-white/80">Viral {h.virality}% · Sent {h.sentiment}%</div>
+          <p className="mt-3 text-sm text-white/80 leading-relaxed">{solution}</p>
+          <div className="mt-4 grid gap-2">
+            {tips.map((t, i) => (
+              <div key={i} className="rounded-xl bg-black/30 px-3 py-2 text-sm text-white/80 ring-1 ring-white/10">
+                • {t}
               </div>
             ))}
           </div>
         </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="flex items-center gap-2 text-white/80">
+            <TrendingUp className="h-5 w-5 text-cyan-300" />
+            <h3 className="font-semibold">Trending Hashtags</h3>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {hashtags.map((h, i) => (
+              <span key={i} className="rounded-full bg-gradient-to-r from-fuchsia-500/20 to-cyan-500/20 px-3 py-1 text-xs text-white ring-1 ring-white/10">{h}</span>
+            ))}
+          </div>
+          <div className="mt-4 rounded-xl bg-black/30 p-3 text-xs text-white/60 ring-1 ring-white/10">
+            Tip: Mix broad tags with 2–3 niche tags for better discovery.
+          </div>
+        </div>
       </div>
-    </section>
+
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 p-5">
+        <div className="flex items-center gap-2 text-white/80">
+          <Gauge className="h-5 w-5 text-violet-300" />
+          <h3 className="font-semibold">Preview</h3>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl bg-black/40 p-4 ring-1 ring-white/10">
+            <p className="text-sm text-white/70">Caption Preview</p>
+            <p className="mt-2 text-white">{result.preview.caption}</p>
+          </div>
+          <div className="rounded-xl bg-black/40 p-4 ring-1 ring-white/10">
+            <p className="text-sm text-white/70">Thumbnail/Hook Preview</p>
+            <p className="mt-2 text-white">{result.preview.hook}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
